@@ -2,7 +2,7 @@ import telebot
 import google.generativeai as genai
 import os
 
-# Leggiamo le chiavi dalle impostazioni segrete di Render
+# Leggiamo le chiavi dalle impostazioni di Render
 TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
 GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
 
@@ -18,10 +18,15 @@ def risposta_ia(message):
     try:
         # Il bot invia il testo a Gemini
         response = model.generate_content(message.text)
-        bot.reply_to(message, response.text)
+        
+        if response.text:
+            bot.reply_to(message, response.text)
+        else:
+            bot.reply_to(message, "Gemini non ha prodotto testo.")
+            
     except Exception as e:
         print(f"Errore: {e}")
-        bot.reply_to(message, "Scusa, ho un problema tecnico. Riprova più tardi!")
+        bot.reply_to(message, "Scusa, ho un problema tecnico. Riproviamo?")
 
 # Avvia il bot
 bot.infinity_polling()
