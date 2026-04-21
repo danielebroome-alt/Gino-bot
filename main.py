@@ -10,7 +10,7 @@ logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
 # Usiamo il modello "gemini-pro" che è il più stabile per le librerie attuali
-model = genai.GenerativeModel('gemini-1.5-flash-latest')
+model = genai.GenerativeModel('models/gemini-1.5-flash')
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
