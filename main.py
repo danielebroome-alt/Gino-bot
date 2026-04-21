@@ -4,42 +4,35 @@ from telegram import Update
 from telegram.ext import ApplicationBuilder, ContextTypes, MessageHandler, filters, CommandHandler
 import google.generativeai as genai
 
-# Configurazione Logging
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 
-# Configurazione API Keys
-TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
-GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
+# API Keys
+genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
-genai.configure(api_key=GEMINI_API_KEY)
-
-# Configurazione del modello con filtri disattivati per evitare blocchi
-model = genai.GenerativeModel(
-    model_name="gemini-pro",
-    safety_settings={
-        "HARM_CATEGORY_HARASSMENT": "BLOCK_NONE",
-        "HARM_CATEGORY_HATE_SPEECH": "BLOCK_NONE",
-        "HARM_CATEGORY_SEXUALLY_EXPLICIT": "BLOCK_NONE",
-        "HARM_CATEGORY_DANGEROUS_CONTENT": "BLOCK_NONE",
-    }
-)
+# Usiamo il modello "gemini-pro" che è il più stabile per le librerie attuali
+model = genai.GenerativeModel('gemini-pro')
 
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_text = update.message.text
     try:
-        # Prompt per Gino
-        prompt = f"Tu sei Gino, un meccanico anziano, stanco, brusco e sarcastico. Rispondi a questo: {user_text}"
+        user_text = update.message.text
+        # Prompt ridotto all'osso per evitare blocchi
+        prompt = f"Sei Gino, un meccanico brusco. Rispondi a: {user_text}"
         response = model.generate_content(prompt)
-        await update.message.reply_text(response.text)
+        
+        if response.text:
+            await update.message.reply_text(response.text)
+        else:
+            await update.message.reply_text("Gino mugugna ma non parla (Nessuna risposta).")
+            
     except Exception as e:
-        logging.error(f"Errore: {e}")
-        await update.message.reply_text("Ho finito il grasso per i gomiti, ripassa dopo.")
+        # Se c'è un errore, Gino ci dirà esattamente QUALE su Telegram
+        await update.message.reply_text(f"Errore tecnico: {str(e)[:100]}")
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text("Che vuoi? Sono Gino. Scrivi e non rompermi i bulloni.")
 
 if __name__ == '__main__':
-    application = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
+    application = ApplicationBuilder().token(os.getenv("TELEGRAM_TOKEN")).build()
     application.add_handler(CommandHandler('start', start))
     application.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_message))
     application.run_polling()
