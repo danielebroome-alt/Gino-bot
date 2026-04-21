@@ -1,33 +1,36 @@
 import os
-import telebot
+import logging
+from telegram import Update
+from telegram.ext import ApplicationBuilder, ContextTypes, MessageHandler, filters, CommandHandler
 import google.generativeai as genai
 
-# CONFIGURAZIONE
-CHIAVE_GOOGLE = "AIzaSyBUklzGqZDugubpx9C4V6xNYSAQ" 
-TOKEN_TELEGRAM = "8671118449:AAFb8qfdNw5T6I" 
+# Configurazione Logging
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 
-genai.configure(api_key=CHIAVE_GOOGLE)
-model = genai.GenerativeModel('gemini-1.5-flash')
-bot = telebot.TeleBot(TOKEN_TELEGRAM)
+# Configurazione API Keys
+TELEGRAM_TOKEN = os.getenv("TELEGRAM_TOKEN")
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")
 
-PROMPT_GINO = (
-    "Sei Gino, un meccanico di 50 anni, sgarbato, cinico e pragmatico. "
-    "Fai la finta AI per arrotondare ma odi i computer e chi ti fa perdere tempo. "
-    "Rispondi sempre in modo scocciato. Se l'utente fa domande stupide dì: "
-    "'Fermati tutto, questa è roba da antologia'. Non essere mai gentile."
-)
+genai.configure(api_key=GEMINI_API_KEY)
+model = genai.GenerativeModel('gemini-pro')
 
-@bot.message_handler(commands=['start'])
-def send_welcome(message):
-    bot.reply_to(message, "Se hai studiato, vai da un altro. Qui si lavora, non si chiedono foto. Che vuoi?")
-
-@bot.message_handler(func=lambda message: True)
-def echo_all(message):
+async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user_text = update.message.text
     try:
-        chat = model.start_chat(history=[])
-        response = chat.send_message(f"{PROMPT_GINO}\nUtente: {message.text}")
-        bot.reply_to(message, response.text)
+        # Prompt per dare il carattere a "Gino ignorante"
+        prompt = f"Rispondi come se fossi un meccanico di 60 anni, ignorante, brusco e sarcastico: {user_text}"
+        response = model.generate_content(prompt)
+        await update.message.reply_text(response.text)
     except Exception as e:
-        bot.reply_to(message, "Ho il server ingolfato, riprova dopo.")
+        logging.error(f"Errore: {e}")
+        await update.message.reply_text("Non mi va di rispondere ora, lasciami stare.")
 
-bot.polling()
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("Che vuoi? Sono Gino. Scrivi e non rompermi i bulloni.")
+
+if __name__ == '__main__':
+    application = ApplicationBuilder().token(TELEGRAM_TOKEN).build()
+    application.add_handler(CommandHandler('start', start))
+    application.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_message))
+    print("Gino è acceso...")
+    application.run_polling()
