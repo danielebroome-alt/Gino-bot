@@ -1,2 +1,2 @@
-texy
+text
 python-telegram-bot
