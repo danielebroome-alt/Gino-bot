@@ -15,7 +15,7 @@ genai.configure(api_key=GEMINI_API_KEY)
 
 # Configurazione del modello con filtri disattivati per evitare blocchi
 model = genai.GenerativeModel(
-    model_name="gemini-1.5-flash",
+    model_name="gemini-pro",
     safety_settings={
         "HARM_CATEGORY_HARASSMENT": "BLOCK_NONE",
         "HARM_CATEGORY_HATE_SPEECH": "BLOCK_NONE",
