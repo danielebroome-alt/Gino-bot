@@ -1,38 +1,41 @@
 import os
 import logging
 from telegram import Update
-from telegram.ext import ApplicationBuilder, ContextTypes, MessageHandler, filters, CommandHandler
+from telegram.ext import ApplicationBuilder, MessageHandler, ContextTypes, filters
 import google.generativeai as genai
 
-logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
+# Logging (serve per vedere errori)
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.INFO
+)
 
-# API Keys
+# Configurazione GEMINI
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+model = genai.GenerativeModel("gemini-pro")
 
-# Usiamo il modello "gemini-pro" che è il più stabile per le librerie attuali
-model = genai.GenerativeModel('models/gemini-1.5-flash')
-
+# Funzione che risponde ai messaggi
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         user_text = update.message.text
-        # Prompt ridotto all'osso per evitare blocchi
-        prompt = f"Sei Gino, un meccanico brusco. Rispondi a: {user_text}"
-        response = model.generate_content(prompt)
-        
-        if response.text:
-            await update.message.reply_text(response.text)
-        else:
-            await update.message.reply_text("Gino mugugna ma non parla (Nessuna risposta).")
-            
+
+        response = model.generate_content(user_text)
+
+        await update.message.reply_text(response.text)
+
     except Exception as e:
-        # Se c'è un errore, Gino ci dirà esattamente QUALE su Telegram
-        await update.message.reply_text(f"Errore tecnico: {str(e)[:100]}")
+        logging.error(f"Errore: {e}")
+        await update.message.reply_text("Si è rotto qualcosa, capo. Riprova tra poco.")
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Che vuoi? Sono Gino. Scrivi e non rompermi i bulloni.")
+# Avvio del bot
+def main():
+    telegram_token = os.getenv("TELEGRAM_BOT_TOKEN")
 
-if __name__ == '__main__':
-    application = ApplicationBuilder().token(os.getenv("TELEGRAM_TOKEN")).build()
-    application.add_handler(CommandHandler('start', start))
-    application.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), handle_message))
-    application.run_polling()
+    app = ApplicationBuilder().token(telegram_token).build()
+
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+
+    app.run_polling()
+
+if __name__ == "__main__":
+    main()
